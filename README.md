@@ -1,1 +1,1 @@
-# trading_ideas
+# Trading Idea Generation
