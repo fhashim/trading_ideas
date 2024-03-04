@@ -7,3 +7,5 @@ data/index.csv
 data/psx_db.csv
 
 config/creds.json
+
+schema/stocks.sql
