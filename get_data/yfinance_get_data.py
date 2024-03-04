@@ -45,34 +45,34 @@ def get_yfinance_data(tickers, start_date, end_date):
     final_df['Adj Close'] = final_df['Adj Close'].round(4)
     final_df['Volume'] = final_df['Volume'].round(4)
 
-    final_df[(final_df.Date >= '2015-01-01') and (final_df.Date <= '2015-12-31')]\
+    final_df[(final_df.Date >= '2015-01-01') & (final_df.Date <= '2015-12-31')]\
         .to_sql('tbl_historical_prices_us', engine, if_exists='append', index=False)
     
-    final_df[(final_df.Date >= '2016-01-01') and (final_df.Date <= '2016-12-31')]\
+    final_df[(final_df.Date >= '2016-01-01') & (final_df.Date <= '2016-12-31')]\
         .to_sql('tbl_historical_prices_us', engine, if_exists='append', index=False)
     
-    final_df[(final_df.Date >= '2017-01-01') and (final_df.Date <= '2017-12-31')]\
+    final_df[(final_df.Date >= '2017-01-01') & (final_df.Date <= '2017-12-31')]\
         .to_sql('tbl_historical_prices_us', engine, if_exists='append', index=False)
     
-    final_df[(final_df.Date >= '2018-01-01') and (final_df.Date <= '2018-12-31')]\
+    final_df[(final_df.Date >= '2018-01-01') & (final_df.Date <= '2018-12-31')]\
         .to_sql('tbl_historical_prices_us', engine, if_exists='append', index=False)
     
-    final_df[(final_df.Date >= '2019-01-01') and (final_df.Date <= '2019-12-31')]\
+    final_df[(final_df.Date >= '2019-01-01') & (final_df.Date <= '2019-12-31')]\
         .to_sql('tbl_historical_prices_us', engine, if_exists='append', index=False)
     
-    final_df[(final_df.Date >= '2020-01-01') and (final_df.Date <= '2020-12-31')]\
+    final_df[(final_df.Date >= '2020-01-01') & (final_df.Date <= '2020-12-31')]\
         .to_sql('tbl_historical_prices_us', engine, if_exists='append', index=False)
     
-    final_df[(final_df.Date >= '2021-01-01') and (final_df.Date <= '2021-12-31')]\
+    final_df[(final_df.Date >= '2021-01-01') & (final_df.Date <= '2021-12-31')]\
         .to_sql('tbl_historical_prices_us', engine, if_exists='append', index=False)
     
-    final_df[(final_df.Date >= '2022-01-01') and (final_df.Date <= '2022-12-31')]\
+    final_df[(final_df.Date >= '2022-01-01') & (final_df.Date <= '2022-12-31')]\
         .to_sql('tbl_historical_prices_us', engine, if_exists='append', index=False)
     
-    final_df[(final_df.Date >= '2023-01-01') and (final_df.Date <= '2023-12-31')]\
+    final_df[(final_df.Date >= '2023-01-01') & (final_df.Date <= '2023-12-31')]\
         .to_sql('tbl_historical_prices_us', engine, if_exists='append', index=False)
     
-    final_df[(final_df.Date >= '2024-01-01') and (final_df.Date <= '2024-12-31')]\
+    final_df[(final_df.Date >= '2024-01-01') & (final_df.Date <= '2024-12-31')]\
         .to_sql('tbl_historical_prices_us', engine, if_exists='append', index=False)
 
     # final_df.to_sql('tbl_historical_prices_us', engine, if_exists='append', index=False)
