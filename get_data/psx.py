@@ -5,7 +5,7 @@ from get_data.cnxn import server_access
 
 db_table = pd.DataFrame()
 
-dates = pd.bdate_range('2024-02-29', '2024-03-01')
+dates = pd.bdate_range('2022-01-01', '2022-12-31')
 
 t0 = t.time()
 

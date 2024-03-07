@@ -5,10 +5,11 @@ import numpy as np
 import mplfinance as mpf
 import datetime
 import quantstats
-from data.live_data import live_data
+from config.read_data import get_ticker_data_pak
 
 df = pd.read_csv(r'data\btc_usdt_15min.csv')
 # df = live_data('2024-01-01', '2024-01-05')
+df = get_ticker_data_pak('TRG', '2015-01-01', '2024-03-02')
 df['OpenDate'] = pd.to_datetime(df['OpenDate'])
 df = df.sort_values(by='OpenDate')
 
@@ -65,16 +66,16 @@ class SignalData(PandasData):
     params.update({'datetime': None})
     params = tuple(params.items())
 
-class BinanceCommission(bt.CommissionInfo):
-    params = (
-        ("commission", 10),  # 0.1% commission rate
-        ("mult", 1.0),  # This is multiplied by the size of the trade
-        ("margin", None),
-        # ("commtype", bt.Commission.PerTrade),
-        # ("stocklike", False),
-        # ("commtype", bt.Commission.PerTrade),
-        # ("percabs", True),
-    )
+# class BinanceCommission(bt.CommissionInfo):
+#     params = (
+#         ("commission", 10),  # 0.1% commission rate
+#         ("mult", 1.0),  # This is multiplied by the size of the trade
+#         ("margin", None),
+#         # ("commtype", bt.Commission.PerTrade),
+#         # ("stocklike", False),
+#         # ("commtype", bt.Commission.PerTrade),
+#         # ("percabs", True),
+#     )
 
 # define backtesting strategy class
 # Create a Stratey
@@ -95,8 +96,8 @@ class PatternsStrategy(bt.Strategy):
 
     params = dict(
         limit = 0.005,
-        limdays = 30,  # minutes after which the buy order expires (OCO)
-        limdays2 = 30, # minutes after which the sell order expires (OCO)
+        limdays = 4200,  # minutes after which the buy order expires (OCO)
+        limdays2 = 4200, # minutes after which the sell order expires (OCO)
         hold = 4,  # number of timestamps after which we need to sell
         usebracket_buy = False,  # buy use order_target_size
         switchp1p2_buy = False,  # buy switch prices of order1 and order2
@@ -132,9 +133,9 @@ class PatternsStrategy(bt.Strategy):
 
             if self.datapredicted == 1:
                 close = self.data.close[0]
-                p1_buy = close - 200 # close * (1.0 - self.p.limit)
-                p2_buy = p1_buy - 100 # p1_buy - 0.1 * close
-                p3_buy = p1_buy + 100 # p1_buy + 0.05 * close
+                p1_buy = close   # close * (1.0 - self.p.limit)
+                p2_buy = p1_buy * 0.9 # p1_buy - 0.1 * close
+                p3_buy = p1_buy * 1.1 # p1_buy + 0.05 * close
 
                 valid1_buy = datetime.timedelta(minutes=self.p.limdays)
                 valid2_buy = valid3_buy = datetime.timedelta(minutes=self.p.limdays2)
@@ -208,12 +209,12 @@ cerebro.addstrategy(PatternsStrategy)
 cerebro.adddata(data)
 
 # Set our desired cash start
-cerebro.broker.setcash(1000.0)
+cerebro.broker.setcash(100000.0)
 
 # Set the commission scheme
 # cerebro.broker.addcommissioninfo(BinanceCommission(), name='binance')
-cerebro.broker.setcommission(
-        commission=0.0001, margin=None, mult=1.0)
+# cerebro.broker.setcommission(
+#         commission=0.0001, margin=None, mult=1.0)
 
 # Print out the starting conditions
 print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
@@ -232,8 +233,11 @@ returns, positions, transactions, gross_lev = pyfoliozer.get_pf_items()
 returns.index = returns.index.tz_convert(None)
 
 quantstats.reports.html(returns, output=r'Stats.html',
-                        title="BTC")
+                        title="TRG")
 
 cerebro.plot()
 
 ## With commission: 35.30
+
+
+bt_df[(bt_df.index >= '2015-04-10') & (bt_df.index <= "2015-04-17")]
