@@ -1,3 +1,6 @@
+import numpy as np
+from get_data.read_data import get_ticker_data_binance
+from patterns.get_patterns import hammer
 import backtrader as bt
 from backtrader.feeds import PandasData
 import pandas as pd
@@ -5,60 +8,35 @@ import numpy as np
 import mplfinance as mpf
 import datetime
 import quantstats
-from get_data.read_data import get_ticker_data_pak
 
-df = pd.read_csv(r'data\btc_usdt_15min.csv')
-# df = live_data('2024-01-01', '2024-01-05')
-df = get_ticker_data_pak('TRG', '2015-01-01', '2024-03-02')
-df['OpenDate'] = pd.to_datetime(df['OpenDate'])
-df = df.sort_values(by='OpenDate')
+crypto_data =  get_ticker_data_binance('BTC', '2023-01-01', '2024-03-21')
 
-cols = ['Open', 'High', 'Low', 'Close', 'Volume']
-for col in cols:
+df = crypto_data[['OpenDate', 'Open', 'High', 'Low', 
+         'Close', 'Volume']].rename(columns = {'OpenDate':'Date'})
+
+for col in ['Open', 'High', 'Low', 'Close']:
     df[col] = df[col].astype(float)
-'''
-0%, 38.2%, 50%, 61.8%, 78.6%, 100%
-1) Close > Open 
-2) normalized = (x -x_min / x_max - x_min)
-3) x_val = 0.618 * (x_max - X_min) + x_min
-4) O > x_val
-'''
-analysis_df = df[['OpenDate', 'Open', 'High', 'Low', 'Close', 'Volume']]
-analysis_df['x_val'] = (0.618 * (analysis_df['High'] - analysis_df['Low'])) + analysis_df['Low']
-analysis_df['signal'] = np.where((analysis_df['Open'] < analysis_df['Close']) & 
-                                 (analysis_df['Open'] > analysis_df['x_val']), 1, 0)
-analysis_df['next_signal'] = np.where(analysis_df['signal'].shift() == 1, -1, 0)
-analysis_df['signal'] = np.where(analysis_df.next_signal == -1, -1, analysis_df.signal)
-analysis_df.set_index('OpenDate', inplace=True)
 
-plot_df = analysis_df[(analysis_df.index >= '2023-12-01')] #  & (analysis_df.signal.abs() == 1) 
-# plot_df = analysis_df.copy()
-# Plot candlestick chart with markers
-fig, ax = mpf.plot(plot_df, type='candle', style='yahoo', ylabel='Price', 
-                   ylabel_lower='Volume', addplot=mpf.make_addplot(plot_df['signal'], 
-                                                                   type='scatter', 
-                                                                   markersize=100, 
-                                                                   marker='^', 
-                                                                   color='g', 
-                                                                   panel=1))
+df = df.sort_values(by='Date')
 
-# Show the plot
-mpf.show()
+df = df[df.Date >= '2024-01-01']
 
-## Backtest ##
-# Define the Backtrader strategyx
+df = hammer(df)
 
-bt_df = plot_df.copy()
-bt_df = bt_df.rename(columns={'signal': 'predicted'})
-bt_df = bt_df[['Open', 'High', 'Low', 'Close', 'Volume', 'predicted']]
-bt_df.index.column = 'Date'
-# class to define the columns we will provide
+df['ewm'] = df['Close'].ewm(span=50,min_periods=0,adjust=False,ignore_na=False).mean()
+
+df['ewm_signal'] = np.where(df['Low'] > df['ewm'], 1, 0)
+
+df['ewm_rolling_sum'] = df['ewm_signal'].rolling(15).sum()
+
+df['final_signal'] = np.where((df.signal == 1) & (df.ewm_rolling_sum > 10), 1, 0)
+
 class SignalData(PandasData):
     """
     Define pandas DataFrame structure
     """
     OHLCV = ['Open', 'High', 'Low', 'Close', 'Volume']
-    cols = OHLCV + ['predicted']
+    cols = OHLCV + ['signal']
     # create lines
     lines = tuple(cols)
     # define parameters
@@ -66,16 +44,16 @@ class SignalData(PandasData):
     params.update({'datetime': None})
     params = tuple(params.items())
 
-# class BinanceCommission(bt.CommissionInfo):
-#     params = (
-#         ("commission", 10),  # 0.1% commission rate
-#         ("mult", 1.0),  # This is multiplied by the size of the trade
-#         ("margin", None),
-#         # ("commtype", bt.Commission.PerTrade),
-#         # ("stocklike", False),
-#         # ("commtype", bt.Commission.PerTrade),
-#         # ("percabs", True),
-#     )
+class BinanceCommission(bt.CommissionInfo):
+    params = (
+        ("commission", 10),  # 0.1% commission rate
+        ("mult", 1.0),  # This is multiplied by the size of the trade
+        ("margin", None),
+        # ("commtype", bt.Commission.PerTrade),
+        # ("stocklike", False),
+        # ("commtype", bt.Commission.PerTrade),
+        # ("percabs", True),
+    )
 
 # define backtesting strategy class
 # Create a Stratey
@@ -89,15 +67,15 @@ class PatternsStrategy(bt.Strategy):
     def __init__(self):
         # Keep a reference to the "close" line in the data[0] dataseries
         self.dataclose = self.datas[0].close
-        self.datapredicted = self.datas[0].predicted
+        self.datapredicted = self.datas[0].signal
 
         # To keep track of pending orders
         self.order = None
 
     params = dict(
         limit = 0.005,
-        limdays = 4200,  # minutes after which the buy order expires (OCO)
-        limdays2 = 4200, # minutes after which the sell order expires (OCO)
+        limdays = 30,  # minutes after which the buy order expires (OCO)
+        limdays2 = 30, # minutes after which the sell order expires (OCO)
         hold = 4,  # number of timestamps after which we need to sell
         usebracket_buy = False,  # buy use order_target_size
         switchp1p2_buy = False,  # buy switch prices of order1 and order2
@@ -133,9 +111,9 @@ class PatternsStrategy(bt.Strategy):
 
             if self.datapredicted == 1:
                 close = self.data.close[0]
-                p1_buy = close   # close * (1.0 - self.p.limit)
-                p2_buy = p1_buy * 0.9 # p1_buy - 0.1 * close
-                p3_buy = p1_buy * 1.1 # p1_buy + 0.05 * close
+                p1_buy = close  # close * (1.0 - self.p.limit)
+                p2_buy = p1_buy - 1000 # p1_buy - 0.1 * close
+                p3_buy = p1_buy + 500 # p1_buy + 0.05 * close
 
                 valid1_buy = datetime.timedelta(minutes=self.p.limdays)
                 valid2_buy = valid3_buy = datetime.timedelta(minutes=self.p.limdays2)
@@ -194,7 +172,7 @@ class PatternsStrategy(bt.Strategy):
                 self.close()
 
 
-data = SignalData(dataname=bt_df)
+data = SignalData(dataname=df[['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'signal']].set_index('Date'))
 
 # Create a cerebro entity
 cerebro = bt.Cerebro()
@@ -233,11 +211,6 @@ returns, positions, transactions, gross_lev = pyfoliozer.get_pf_items()
 returns.index = returns.index.tz_convert(None)
 
 quantstats.reports.html(returns, output=r'Stats.html',
-                        title="TRG")
+                        title="BTC")
 
 cerebro.plot()
-
-## With commission: 35.30
-
-
-bt_df[(bt_df.index >= '2015-04-10') & (bt_df.index <= "2015-04-17")]
