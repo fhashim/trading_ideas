@@ -16,6 +16,17 @@ def get_ticker_data_pak(ticker, start_date, end_date):
 
     return df
 
+def get_bulk_ticker_data_pak(tickers, start_date, end_date):
+    
+    engine = server_access()
+    sql = f"SELECT Date, Ticker, Open, High, Low, close Close, Volume from \
+        stocks.tbl_historical_prices_pak WHERE ticker IN {tuple(tickers)} \
+            AND Date BETWEEN '{start_date}' AND '{end_date}' ORDER BY Date ASC;"
+
+    df = pd.read_sql(sql, engine)
+
+    return df
+
 def get_tickers_list():
     engine = server_access()
     sql = '''   select distinct(Ticker) from stocks.tbl_historical_prices_pak; '''
