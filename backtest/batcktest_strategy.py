@@ -5,54 +5,35 @@ import numpy as np
 import mplfinance as mpf
 import datetime
 import quantstats
-from get_data.read_data import get_ticker_data_pak
+from patterns.get_patterns import hammer
+from get_data.read_data import get_tickers_list
 
-df = pd.read_csv(r'data\btc_usdt_15min.csv')
-# df = live_data('2024-01-01', '2024-01-05')
-df = get_ticker_data_pak('TRG', '2015-01-01', '2024-03-02')
-df['OpenDate'] = pd.to_datetime(df['OpenDate'])
-df = df.sort_values(by='OpenDate')
+stocks_list = ['FFC','ENGRO','SYS','EFERT','EPQL','EPCL','SEPL','HBL','POL','BAFL',
+            'HMB','MTL','MARI','CHCC','UBL','ARPL','INIL','MCB','LOTCHEM','INDU',
+            'JLICL','PCAL','HUBC','CHCC','PSO','FEROZ','DAWH','TRG','MEBL',
+            'CYAN','EFUL','GADT','ISL','PKGS','AICL','FFBL','AKBL','ABOT','CEPB',
+            'LCI','GGGL','REDCO','HUMNL','MRNS','TRIPF','AABS','SPEL','ACPL','OLPM',
+            'NESTLE','LUCK','BAHL','COLG','APL','BATA','AGIL','EFUG','AGP','ZIL']
 
-cols = ['Open', 'High', 'Low', 'Close', 'Volume']
-for col in cols:
-    df[col] = df[col].astype(float)
-'''
-0%, 38.2%, 50%, 61.8%, 78.6%, 100%
-1) Close > Open 
-2) normalized = (x -x_min / x_max - x_min)
-3) x_val = 0.618 * (x_max - X_min) + x_min
-4) O > x_val
-'''
-analysis_df = df[['OpenDate', 'Open', 'High', 'Low', 'Close', 'Volume']]
-analysis_df['x_val'] = (0.618 * (analysis_df['High'] - analysis_df['Low'])) + analysis_df['Low']
-analysis_df['signal'] = np.where((analysis_df['Open'] < analysis_df['Close']) & 
-                                 (analysis_df['Open'] > analysis_df['x_val']), 1, 0)
-analysis_df['next_signal'] = np.where(analysis_df['signal'].shift() == 1, -1, 0)
-analysis_df['signal'] = np.where(analysis_df.next_signal == -1, -1, analysis_df.signal)
-analysis_df.set_index('OpenDate', inplace=True)
+fitered_stocks = ['ENGRO','EFERT','EPQL','MTL','UBL','INDU','PCAL','HUBC','FEROZ','MEBL',
+                'PKGS','AICL','FFBL','HUMNL','MRNS','AABS','SPEL','NESTLE', 'EFUG','AGP','ZIL']
 
-plot_df = analysis_df[(analysis_df.index >= '2023-12-01')] #  & (analysis_df.signal.abs() == 1) 
-# plot_df = analysis_df.copy()
-# Plot candlestick chart with markers
-fig, ax = mpf.plot(plot_df, type='candle', style='yahoo', ylabel='Price', 
-                   ylabel_lower='Volume', addplot=mpf.make_addplot(plot_df['signal'], 
-                                                                   type='scatter', 
-                                                                   markersize=100, 
-                                                                   marker='^', 
-                                                                   color='g', 
-                                                                   panel=1))
+
+
+df = hammer('AIRLINK', '2023-01-01', '2024-07-03')
+
+# # Plot candlestick chart with markers
+# fig, ax = mpf.plot(df, type='candle', style='yahoo', ylabel='Price', 
+#                    ylabel_lower='Volume', addplot=mpf.make_addplot(df['predicted'], 
+#                                                                    type='scatter', 
+#                                                                    markersize=100, 
+#                                                                    marker='^', 
+#                                                                    color='g', 
+#                                                                    panel=1))
 
 # Show the plot
 mpf.show()
 
-## Backtest ##
-# Define the Backtrader strategyx
-
-bt_df = plot_df.copy()
-bt_df = bt_df.rename(columns={'signal': 'predicted'})
-bt_df = bt_df[['Open', 'High', 'Low', 'Close', 'Volume', 'predicted']]
-bt_df.index.column = 'Date'
-# class to define the columns we will provide
 class SignalData(PandasData):
     """
     Define pandas DataFrame structure
@@ -66,19 +47,7 @@ class SignalData(PandasData):
     params.update({'datetime': None})
     params = tuple(params.items())
 
-# class BinanceCommission(bt.CommissionInfo):
-#     params = (
-#         ("commission", 10),  # 0.1% commission rate
-#         ("mult", 1.0),  # This is multiplied by the size of the trade
-#         ("margin", None),
-#         # ("commtype", bt.Commission.PerTrade),
-#         # ("stocklike", False),
-#         # ("commtype", bt.Commission.PerTrade),
-#         # ("percabs", True),
-#     )
 
-# define backtesting strategy class
-# Create a Stratey
 class PatternsStrategy(bt.Strategy):
 
     def log(self, txt, dt=None):
@@ -96,9 +65,9 @@ class PatternsStrategy(bt.Strategy):
 
     params = dict(
         limit = 0.005,
-        limdays = 4200,  # minutes after which the buy order expires (OCO)
-        limdays2 = 4200, # minutes after which the sell order expires (OCO)
-        hold = 4,  # number of timestamps after which we need to sell
+        limdays = 7200,  # minutes after which the buy order expires (OCO)
+        limdays2 = 7200, # minutes after which the sell order expires (OCO)
+        hold = 10,  # number of timestamps after which we need to sell
         usebracket_buy = False,  # buy use order_target_size
         switchp1p2_buy = False,  # buy switch prices of order1 and order2
         usebracket_sell = False,  # buy use order_target_size
@@ -133,7 +102,7 @@ class PatternsStrategy(bt.Strategy):
 
             if self.datapredicted == 1:
                 close = self.data.close[0]
-                p1_buy = close   # close * (1.0 - self.p.limit)
+                p1_buy = close * 1.05  # close * (1.0 - self.p.limit)
                 p2_buy = p1_buy * 0.9 # p1_buy - 0.1 * close
                 p3_buy = p1_buy * 1.1 # p1_buy + 0.05 * close
 
@@ -151,29 +120,29 @@ class PatternsStrategy(bt.Strategy):
                     print(self.size_buy)
 
                     o1 = self.buy(exectype=bt.Order.Limit,
-                                  price=p1_buy,
-                                  valid=valid1_buy,
-                                  size=self.size_buy,
-                                  transmit=False)
+                                price=p1_buy,
+                                valid=valid1_buy,
+                                size=self.size_buy,
+                                transmit=False)
                     
                     print('{}: Oref {} / Buy at {}'.format(
                         self.datetime.datetime(), o1.ref, p1_buy))
 
                     o2 = self.sell(exectype=bt.Order.Stop,
-                                   price=p2_buy,
-                                   valid=valid2_buy,
-                                   size=self.size_buy,
-                                   parent=o1,
-                                   transmit=False)
+                                price=p2_buy,
+                                valid=valid2_buy,
+                                size=self.size_buy,
+                                parent=o1,
+                                transmit=False)
                     print('{}: Oref {} / Sell Stop at {}'.format(
                         self.datetime.datetime(), o2.ref, p2_buy))
 
                     o3 = self.sell(exectype=bt.Order.Limit,
-                                   price=p3_buy,
-                                   valid=valid3_buy,
-                                   size=self.size_buy,
-                                   parent=o1,
-                                   transmit=True)
+                                price=p3_buy,
+                                valid=valid3_buy,
+                                size=self.size_buy,
+                                parent=o1,
+                                transmit=True)
 
                     print('{}: Oref {} / Sell Limit at {}'.format(
                         self.datetime.datetime(), o3.ref, p3_buy))
@@ -194,7 +163,7 @@ class PatternsStrategy(bt.Strategy):
                 self.close()
 
 
-data = SignalData(dataname=bt_df)
+data = SignalData(dataname=df)
 
 # Create a cerebro entity
 cerebro = bt.Cerebro()
@@ -232,12 +201,16 @@ returns, positions, transactions, gross_lev = pyfoliozer.get_pf_items()
 # To make it compatible with quantstats, remove the timezone awareness using the built-in tz_convert function.
 returns.index = returns.index.tz_convert(None)
 
-quantstats.reports.html(returns, output=r'Stats.html',
-                        title="TRG")
-
+# quantstats.reports.html(returns, output=r'Stats.html',
+#                         title="TRG")
+# print(stock) 
 cerebro.plot()
 
-## With commission: 35.30
-
-
-bt_df[(bt_df.index >= '2015-04-10') & (bt_df.index <= "2015-04-17")]
+tickers_list = get_tickers_list()
+for ticker in tickers_list:
+    df = hammer(ticker, '2024-03-04', '2024-03-05')
+    # print(ticker)
+    if df != -1:
+        if df[df.predicted == 1].shape[0] > 0:
+            print(ticker)
+            print(df)

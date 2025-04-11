@@ -9,3 +9,76 @@ data/psx_db.csv
 config/creds.json
 
 schema/stocks.sql
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.egg
+*.log
+
+# Jupyter Notebooks Checkpoints
+.ipynb_checkpoints/
+
+# Data
+data/raw/
+data/processed/
+data/external/
+*.csv
+*.tsv
+*.parquet
+*.json
+*.xlsx
+*.zip
+
+# Models and Outputs
+models/
+*.pkl
+*.joblib
+*.h5
+*.onnx
+
+# Environments
+.env
+.venv/
+env/
+venv/
+Pipfile.lock
+poetry.lock
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# VS Code
+.vscode/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Notebooks Metadata
+*.nbconvert.ipynb
+*.nbformat
+
+# Frontend Build (React/Streamlit)
+ui/react-ui/build/
+ui/react-ui/node_modules/
+ui/__pycache__/
+
+# Coverage and Reports
+htmlcov/
+.coverage
+coverage.xml
+*.lcov
+
+# Pytest
+.pytest_cache/
+
+# Others
+*.bak
+*.swp
+*.tmp

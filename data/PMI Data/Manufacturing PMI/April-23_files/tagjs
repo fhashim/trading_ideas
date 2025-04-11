@@ -1,0 +1,3 @@
+_pa.setPartners({goo:true})
+_pa.setUserMap('pa_HsdLHgvBsQMJGBWEZ');
+_pa.looperReady();
